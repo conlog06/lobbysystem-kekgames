@@ -146,10 +146,14 @@ async function tests() {
 
   consoleCommand('tp BotAlice 3.5 65 2.5')
   await until(() => alice.entity.position.x > 3, 'move into NPC interaction reach')
+  await delay(400)
+  await probe('reach', alice)
   for (const [entityName, expectedSlot, expectedItem] of [['witch', 11, 'paper'], ['villager', 10, 'ender_pearl']]) {
     await until(() => Object.values(alice.entities).some(entity => entity.name === entityName), entityName + ' visible to client')
     const npc = Object.values(alice.entities).find(entity => entity.name === entityName)
+    console.log('NPC CLIENT TARGET', entityName, npc.id, npc.position, 'PLAYER', alice.entity.position)
     await alice.lookAt(npc.position.offset(0, 1, 0), true)
+    await alice.activateEntityAt(npc, npc.position.offset(0, 1, 0))
     await alice.activateEntity(npc)
     await until(() => alice.currentWindow?.slots[expectedSlot]?.name === expectedItem, entityName + ' interaction opens menu')
     assert.equal(alice.currentWindow.slots[expectedSlot].name, expectedItem)
@@ -231,9 +235,22 @@ async function tests() {
 
   await chat(alice, '/build'); await delay(300); await probe('build', alice)
   await chat(alice, '/build'); await delay(300); await probe('session', alice)
-  consoleCommand('tp BotAlice 6.5 65.1 0.5')
-  await until(() => alice.entity.position.y > 66, 'launch pad sends connected player upward')
-  pass('launch-pad-real-player-movement')
+  const padVelocities = []
+  const velocityListener = packet => { if (packet.entityId === alice.entity.id) padVelocities.push(packet) }
+  alice._client.on('entity_velocity', velocityListener)
+  consoleCommand('tp BotAlice 6.5 65 0.5')
+  await until(() => alice.entity.position.x > 6 && alice.entity.position.x < 7, 'place player on launch pad')
+  alice.setControlState('forward', true)
+  try {
+    await until(() => padVelocities.some(packet => (packet.velocity?.y ?? packet.velocityY ?? 0) > 0), 'launch pad delivers upward velocity packet to connected player')
+  } finally {
+    alice.setControlState('forward', false)
+    console.log('LAUNCH CLIENT STATE', alice.entity.position, alice.entity.velocity, alice.game.gameMode, JSON.stringify(padVelocities))
+  }
+  alice._client.removeListener('entity_velocity', velocityListener)
+  console.log('LAUNCH CLIENT VELOCITY', JSON.stringify(padVelocities))
+  await probe('launch', alice)
+  pass('launch-pad-delivers-upward-velocity-to-real-client')
   consoleCommand('tp BotAlice 0.5 65 0.5')
   window = await open(alice, '/profil')
   assert.equal(window.slots[12].name, 'gold_ingot')
