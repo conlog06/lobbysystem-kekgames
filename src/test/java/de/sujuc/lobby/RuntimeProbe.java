@@ -37,9 +37,9 @@ public final class RuntimeProbe extends JavaPlugin implements org.bukkit.event.L
         Object ui=field(lobby,"ui");check(uiString(ui,"profile",player).equals(profile),"correct viewer profile");check(uiString(ui,"font",player).equals(font),"correct viewer font");
         var item=player.getInventory().getItem(0);check(item.getType()==(profile.equals("modern")?Material.RECOVERY_COMPASS:Material.COMPASS),"profile hotbar icon");
         String name=jsonComponent(org.bukkit.inventory.meta.ItemMeta.class.getMethod("displayName").invoke(item.getItemMeta()));
-        check(name.contains(font)&&name.contains("Navigator")&&name.contains("#38bdf8"),"RGB item component and font");
+        check(name.contains(font)&&name.contains("Navigator")&&name.toLowerCase(Locale.ROOT).contains("#38bdf8"),"RGB item component and font: "+name);
         String title=jsonComponent(org.bukkit.inventory.InventoryView.class.getMethod("title").invoke(player.getOpenInventory()));
-        check(title.contains(font)&&title.contains("Kek")&&title.contains("Games")&&!title.contains("{brand}"),"branded inventory title and font");
+        check(title.contains(font)&&title.contains("Kek")&&title.contains("Games")&&!title.contains("{brand}"),"branded inventory title and font: "+title);
         check(player.getOpenInventory().getTopInventory().getItem(1).getType()==(profile.equals("modern")?Material.BLACK_STAINED_GLASS_PANE:Material.GRAY_STAINED_GLASS_PANE),"profile inventory background");
         var objective=player.getScoreboard().getObjective("lobby");
         check(org.bukkit.scoreboard.Objective.class.getMethod("numberFormat").invoke(objective)!=null,"sidebar score numbers suppressed");
