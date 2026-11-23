@@ -46,12 +46,14 @@ async function prepareDownloads() {
   await download(jar.url, path.join(root, 'server.jar'), jar.checksums.sha256)
   results.paperBuild = stable.id
   if (version !== '1.21.10') {
-    for (const project of ['ViaVersion', 'ViaBackwards']) {
-      const release = await json(`https://api.github.com/repos/ViaVersion/${project}/releases/latest`)
-      const asset = release.assets.find(asset => new RegExp(`^${project}-[0-9].*\\.jar$`).test(asset.name) && !/sources|javadoc|fabric/i.test(asset.name))
-      assert(asset, `${project} JAR asset must exist`)
-      await download(asset.browser_download_url, path.join(root, 'plugins', project + '.jar'), asset.digest?.replace('sha256:', ''))
-      results[project] = release.tag_name
+    const dependencies = {
+      ViaVersion: '24e4876fefe73e08a4c87cd6c457ee0916e62dd69656631caf41e26f909d504b',
+      ViaBackwards: '9a148a80ea22074f4bd1626cdbe254a4cd998bf44e7ceaff4e285a1b6b35da42'
+    }
+    for (const [project, digest] of Object.entries(dependencies)) {
+      const pinnedVersion = '5.12.2'
+      await download(`https://github.com/ViaVersion/${project}/releases/download/${pinnedVersion}/${project}-${pinnedVersion}.jar`, path.join(root, 'plugins', project + '.jar'), digest)
+      results[project] = pinnedVersion
     }
   }
 }
