@@ -51,7 +51,7 @@ final class Protection implements Listener {
         if(!(e.getWhoClicked() instanceof Player player))return;
         if(e.getView().getTopInventory().getHolder() instanceof Menus.Holder holder){
             e.setCancelled(true);
-            if(holder.viewer.equals(player.getUniqueId())&&e.getRawSlot()>=0&&e.getRawSlot()<e.getView().getTopInventory().getSize()){
+            if(holder.viewer.equals(player.getUniqueId())&&e.getRawSlot()>=0&&e.getRawSlot()<e.getView().getTopInventory().getSize()&&(e.getClick()==ClickType.LEFT||e.getClick()==ClickType.RIGHT)){
                 String action=p.menus.action(e.getCurrentItem());Bukkit.getScheduler().runTask(p,()->{if(player.getOpenInventory().getTopInventory()==holder.inv)p.menus.click(player,action);});
             }
         }else if(locked(player))e.setCancelled(true);

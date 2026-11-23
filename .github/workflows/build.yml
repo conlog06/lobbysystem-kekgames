@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: lobby-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Spigot ${{ matrix.api }}
@@ -152,5 +156,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          test "$(gh api repos/$GITHUB_REPOSITORY/git/ref/heads/main --jq .object.sha)" = "$GITHUB_SHA"
           gh release create v1.1.0 release-assets/* --draft --target "$GITHUB_SHA" --title "KekGames LobbySystem 1.1.0" --notes-file .github/RELEASE-v1.1.0.md
           gh release edit v1.1.0 --draft=false --latest

@@ -62,6 +62,8 @@ async function startServer() {
   for (const stream of [server.stdout, server.stderr]) stream.on('data', data => { output.write(data); serverText = (serverText + data.toString()).slice(-500000) })
   server.once('exit', () => output.end())
   await until(() => serverText.includes('RUNTIME READY') && /Done \(/.test(serverText), 'server and licensed plugin ready', 180000)
+  consoleCommand('whitelist off')
+  await delay(200)
 }
 function consoleCommand(command) { server.stdin.write(command + '\n') }
 async function stopServer() {
@@ -141,6 +143,21 @@ async function tests() {
   await probe('locked', alice)
   await until(() => alice.messages.some(message => message.includes('RUNTIME_WELCOME BotAlice')), 'welcome chat delivered')
   pass('welcome-delivered-to-client')
+
+  consoleCommand('tp BotAlice 3.5 65 2.5')
+  await until(() => alice.entity.position.x > 3, 'move into NPC interaction reach')
+  for (const [entityName, expectedSlot, expectedItem] of [['witch', 11, 'paper'], ['villager', 10, 'ender_pearl']]) {
+    await until(() => Object.values(alice.entities).some(entity => entity.name === entityName), entityName + ' visible to client')
+    const npc = Object.values(alice.entities).find(entity => entity.name === entityName)
+    await alice.activateEntity(npc)
+    await until(() => alice.currentWindow !== null, entityName + ' interaction opens menu')
+    assert.equal(alice.currentWindow.slots[expectedSlot].name, expectedItem)
+    await alice.closeWindow(alice.currentWindow)
+    await delay(250)
+    pass('real-NPC-interaction-' + entityName)
+  }
+  consoleCommand('tp BotAlice 0.5 65 0.5')
+  await until(() => alice.entity.position.x < 2, 'return to spawn after NPC checks')
 
   let window = await open(alice, '/navigator')
   assert.equal(window.slots[14].name, 'diamond_pickaxe')
@@ -247,7 +264,7 @@ async function tests() {
   await chat(alice, '/profil')
   await until(() => alice.messages.some(message => message.includes('Keine gültige Lizenz')), 'expired license rejects menus')
   pass('expired-license-blocks-real-player-command')
-  await probe('activate'); await probe('ready'); await probe('session', alice)
+  await probe('activate'); await probe('ready'); await delay(500); await probe('session', alice)
   for (const bot of [alice, bob]) if (bot.runtimeError) throw bot.runtimeError
   assert(!/\[LobbySystem\].*(?:Start fehlgeschlagen|Datenbankoperation fehlgeschlagen)/.test(serverText), 'No plugin or database runtime errors')
   pass('no-plugin-or-database-runtime-errors')

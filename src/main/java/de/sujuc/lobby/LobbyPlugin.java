@@ -155,10 +155,13 @@ public final class LobbyPlugin extends JavaPlugin implements CommandExecutor,Tab
         Settings.Spot spot=target.equalsIgnoreCase("spawn")?cfg.spawn:cfg.warps.get(target.toLowerCase(Locale.ROOT));
         Location l=spot==null?null:spot.location();if(l==null){message(p,"warpMissing");return;}p.teleport(l);
     }
-    void spawnNpcs(){removeNpcs();for(var entry:cfg.npcs.entrySet()){
+    void spawnNpcs(){removeNpcs();Set<Chunk> cleaned=new HashSet<>();for(var entry:cfg.npcs.entrySet()){
         Location loc=entry.getValue().location();if(loc==null||!loc.getWorld().getName().equals(cfg.world))continue;
-        Chunk chunk=loc.getChunk();chunk.addPluginChunkTicket(this);npcChunks.add(chunk);
-        for(Entity e:chunk.getEntities())if(e.getPersistentDataContainer().has(npcKey,PersistentDataType.STRING))e.remove();
+        Chunk chunk=loc.getChunk();
+        if(cleaned.add(chunk)){
+            chunk.addPluginChunkTicket(this);npcChunks.add(chunk);
+            for(Entity e:chunk.getEntities())if(e.getPersistentDataContainer().has(npcKey,PersistentDataType.STRING))e.remove();
+        }
         LivingEntity npc=(LivingEntity)loc.getWorld().spawnEntity(loc,entry.getKey().equals("reward")?EntityType.WITCH:EntityType.VILLAGER);
         npc.setAI(false);npc.setInvulnerable(true);npc.setSilent(true);npc.setCollidable(false);npc.setGravity(false);npc.setPersistent(false);npc.setRemoveWhenFarAway(false);
         npc.setCustomName(color(entry.getKey().equals("reward")?"&bTägliche Belohnung":"&bEinstellungen"));npc.setCustomNameVisible(true);npc.getPersistentDataContainer().set(npcKey,PersistentDataType.STRING,entry.getKey());npcs.put(entry.getKey(),npc);
