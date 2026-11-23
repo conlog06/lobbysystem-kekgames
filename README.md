@@ -162,8 +162,10 @@ Offline-Alternative mit JDK 25 und vorhandenen Paper-Bibliotheken:
 .\build-offline.ps1 -ServerLibraries 'C:\Pfad\zum\PaperServer\libraries'
 ```
 
-Lokal geprüft: Build gegen Paper **26.2** und **50 Prüfungen** mit echten SQLite-Verbindungen, darunter Config-Migration, signierte Lizenzen, parallele Daily-Claims/Käufe, gleichzeitige Überweisungen, Überlauf-/Guthabenschutz, Ranglisten und Neustartpersistenz. Ingame- und MySQL-Laufzeittests sind in der eingeschränkten Umgebung nicht möglich; der isolierte Serverstart scheitert an gesperrten Netzwerk-Sockets. API-Builds ersetzen diese Ingame-Tests nicht.
+Lokal geprüft: Build gegen Paper **26.2** und **50 Prüfungen** mit echten SQLite-Verbindungen. GitHub Actions baut zusätzlich gegen beide Ziel-APIs und führt dieselben 50 Prüfungen mit einem echten **MySQL-8.4-Dienst** aus. Die Prüfungen umfassen Config-Migration, signierte Lizenzen, parallele Claims/Käufe und Überweisungen, Überlauf-/Guthabenschutz, Ranglisten und Persistenz.
 
-Vor öffentlichem Betrieb auf einem Testserver prüfen: Join/Leave-Inventar, Menüs, NPCs nach Neustart, Sichtbarkeit mit zwei Spielern, Sprungplatten, Doppelsprung, Cosmetics, Proxy-Ziele, Belohnungen, Lizenzablauf und MySQL-Zugriffe von zwei Lobbys.
+Die Live-Jobs starten echte **Paper-Server 1.21.10 und 26.3** mit verbundenen Testclients. Sie prüfen NPC-Klicks, Menü- und Inventarschutz, Warps, Rewards, Käufe, Überweisungen, Sichtbarkeit, Sprungplatten, Spielereinstellungen, einen vollständigen Serverneustart sowie Lizenzablauf und Reaktivierung. Der 26.3-Server wird über ViaVersion/ViaBackwards mit einem 1.21.10-Testclient angesprochen; eine manuelle grafische Prüfung ist darin nicht enthalten. Details: [Runtime-Tests](tests/runtime/README.md).
+
+Der [Freigabelauf für v1.1.0](https://github.com/conlog06/lobbysystem-kekgames/actions/runs/45213097513) hat auf beiden Serverversionen jeweils **46 Live-Prüfungen und 50 MySQL-Prüfungen** erfolgreich ausgeführt. Ein Release wird erst nach erfolgreichen Build- und Live-Jobs freigegeben. Die tatsächlich verwendeten Serverbuilds und Einzelergebnisse stehen in den [beigefügten JSON-Berichten](https://github.com/conlog06/lobbysystem-kekgames/releases/tag/v1.1.0). Im eigenen Netzwerk zusätzlich die konkrete Welt, andere Plugins und Proxy-Ziele prüfen; die CI verwendet eine isolierte Testinstallation.
 
 Änderungen: [CHANGELOG.md](CHANGELOG.md). Drittanbieter: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
