@@ -10,11 +10,12 @@ import org.bukkit.entity.*;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.entity.*;
 import org.bukkit.event.player.PlayerToggleFlightEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /** CI-only assertions against real server objects. This class is never included in the customer JAR. */
-public final class RuntimeProbe extends JavaPlugin {
+public final class RuntimeProbe extends JavaPlugin implements org.bukkit.event.Listener {
     private Plugin lobby;
     public void onEnable(){
         lobby=Bukkit.getPluginManager().getPlugin("LobbySystem");
@@ -22,9 +23,12 @@ public final class RuntimeProbe extends JavaPlugin {
         for(int x=-16;x<=16;x++)for(int z=-16;z<=16;z++){world.getBlockAt(x,64,z).setType(Material.STONE,false);for(int y=65;y<70;y++)world.getBlockAt(x,y,z).setType(Material.AIR,false);}
         world.getBlockAt(6,64,0).setType(Material.SLIME_BLOCK,false);world.setSpawnLocation(0,65,0);world.setStorm(false);world.setTime(6000);
         Objects.requireNonNull(getCommand("runtimeprobe")).setExecutor(this);
+        Bukkit.getPluginManager().registerEvents(this,this);
         Bukkit.getScheduler().runTaskTimer(this,()->{try{if(active())getLogger().info("RUNTIME READY");}catch(Exception error){throw new RuntimeException(error);}},20,100);
     }
     private Object field(Object target,String name)throws Exception{Field field=target.getClass().getDeclaredField(name);field.setAccessible(true);return field.get(target);}
+    @org.bukkit.event.EventHandler(priority=org.bukkit.event.EventPriority.MONITOR)
+    public void interaction(PlayerInteractEntityEvent event){getLogger().info("RUNTIME INTERACT "+event.getPlayer().getName()+" target="+event.getRightClicked().getType()+" distance="+event.getPlayer().getLocation().distance(event.getRightClicked().getLocation())+" cancelled="+event.isCancelled()+" menu="+event.getPlayer().getOpenInventory().getTopInventory().getType());}
     private boolean active()throws Exception{return (boolean)field(lobby,"databaseReady")&&(boolean)field(lobby,"licensed");}
     private void check(boolean value,String message){if(!value)throw new AssertionError(message);}
     private long npcs(String type){NamespacedKey key=new NamespacedKey(lobby,"npc");return Bukkit.getWorld("world").getEntities().stream().filter(e->type.equals(e.getPersistentDataContainer().get(key,org.bukkit.persistence.PersistentDataType.STRING))).count();}

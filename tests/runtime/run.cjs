@@ -149,8 +149,9 @@ async function tests() {
   for (const [entityName, expectedSlot, expectedItem] of [['witch', 11, 'paper'], ['villager', 10, 'ender_pearl']]) {
     await until(() => Object.values(alice.entities).some(entity => entity.name === entityName), entityName + ' visible to client')
     const npc = Object.values(alice.entities).find(entity => entity.name === entityName)
+    await alice.lookAt(npc.position.offset(0, 1, 0), true)
     await alice.activateEntity(npc)
-    await until(() => alice.currentWindow !== null, entityName + ' interaction opens menu')
+    await until(() => alice.currentWindow?.slots[expectedSlot]?.name === expectedItem, entityName + ' interaction opens menu')
     assert.equal(alice.currentWindow.slots[expectedSlot].name, expectedItem)
     await alice.closeWindow(alice.currentWindow)
     await delay(250)

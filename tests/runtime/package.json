@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "dependencies": {
-    "mineflayer": "4.34.0",
+    "mineflayer": "github:PrismarineJS/mineflayer#5a252e6d258882b042e60e21c37d552cdf3b3380",
     "mysql2": "^3.15.3"
   }
 }
