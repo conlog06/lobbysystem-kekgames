@@ -1,0 +1,50 @@
+name: Build and test LobbySystem
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Spigot ${{ matrix.api }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [1.21.10-R0.1-SNAPSHOT, 26.3-R0.1-SNAPSHOT]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Java 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Compile, run integration checks and package
+        run: mvn --batch-mode --no-transfer-progress -Dspigot.version=${{ matrix.api }} clean verify
+      - name: Audit customer JAR
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          jars = list(Path('target').glob('LobbySystem-*.jar'))
+          assert len(jars) == 1, jars
+          with ZipFile(jars[0]) as jar:
+              names = jar.namelist()
+              assert 'license-public.der' in names
+              assert not any('private-key' in n or n.startswith(('org/bukkit/', 'io/papermc/')) for n in names)
+              main = jar.read('de/sujuc/lobby/LobbyPlugin.class')
+              assert int.from_bytes(main[6:8], 'big') == 65, 'Expected Java 21 bytecode'
+          print('Customer JAR audit passed')
+          PY
+      - name: Upload customer plugin
+        uses: actions/upload-artifact@v4
+        with:
+          name: LobbySystem-Spigot-${{ matrix.api }}
+          path: target/LobbySystem-*.jar
+          if-no-files-found: error

@@ -1,0 +1,17 @@
+/target/
+/owner/
+**/private-key.der
+**/owner-uuid.txt
+**/issued/
+*.db
+*.db-shm
+*.db-wal
+/logs/
+/plugins/
+/examples/config.json
+*.zip
+*.jar
+*.log
+.env
+.env.*
+/tools/SmokeSetup.java
