@@ -1,0 +1,13 @@
+{
+  "design": {"font":"kekgames:ui"},
+  "menuItemTexts": {
+    "open:navigator":{"name":"&b\ue000 Navigator","lore":"{default}"},
+    "open:lottery":{"name":"&e\ue00d Lotterie","lore":"{default}"},
+    "open:visibility":{"name":"&b\ue006 Spielersichtbarkeit","lore":"{default}"},
+    "open:settings":{"name":"&b\ue005 Einstellungen","lore":"{default}"},
+    "open:cosmetics":{"name":"&d\ue007 Extras","lore":"{default}"},
+    "open:profile":{"name":"&b\ue003 Dein Profil","lore":"{default}"},
+    "open:reward":{"name":"&a\ue004 Belohnungen","lore":"{default}"},
+    "gadget":{"name":"&b\ue008 Dein Gadget","lore":"{default}"}
+  }
+}

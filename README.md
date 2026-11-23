@@ -17,7 +17,7 @@
 - SQLite oder gemeinsame MySQL-Datenbank für mehrere Lobbys.
 - Offline-Lizenzen mit Ed25519-Signaturen, Owner-Ausstellung und automatische Ergänzung neuer Config-Schlüssel.
 
-Die ursprünglichen Bilder dienen als funktionale Orientierung. Clan-System, individuelle Kopftexturen, Ressourcenpakete, Webshop und Kundenkonto sind nicht enthalten. Ballone verwenden unsichtbare ArmorStands mit Blockhelm; Gadgets arbeiten ohne Blockzerstörung.
+Die ursprünglichen Bilder dienen als funktionale Orientierung. Clan-System, individuelle Kopftexturen, Webshop und Kundenkonto sind nicht enthalten. Das optionale [Ressourcenpaket](resourcepack/README.md) wird separat angeboten. Ballone verwenden unsichtbare ArmorStands mit Blockhelm; Gadgets arbeiten ohne Blockzerstörung.
 
 ## Installation
 
@@ -70,7 +70,7 @@ Normale Permission-Namen stehen in `config.json` unter `permissions`: `prefix + 
 | `classic` | `minecraft:default` | grauer Hintergrund, cyanfarbene Akzente | Kompass, Netherstern, TNT |
 | `modern` | `minecraft:uniform` | schwarzer Hintergrund, violette Akzente | Bergungskompass, Amethystscherbe, Prüfungsschlüssel |
 
-Beide Schriften sind im Minecraft-Client enthalten und benötigen kein zusätzliches Ressourcenpaket. Eine eigene Schrift wie `kekgames:ui` benötigt ein vom Spieler geladenes Ressourcenpaket mit diesem Font. Das Plugin liefert kein Ressourcenpaket aus. `design.font: ""` verwendet die Schrift des jeweiligen Profils; `/lobbyui font auto` setzt dies zurück.
+Beide Schriften sind im Minecraft-Client enthalten und benötigen kein zusätzliches Ressourcenpaket. Zusätzlich gibt es das [KekGames-UI-Ressourcenpaket](resourcepack/README.md) mit eigener Pixelschrift, Umlauten und 16 Lobby-Symbolen. Nach dem Laden mit `/lobbyui font kekgames:ui` aktivieren. Alle Spieler benötigen das Paket, sobald diese eigene Schrift global aktiv ist; die Anleitung enthält die Server-Verteilung per `server.properties`. Das Plugin bietet das ZIP nicht selbst an. `design.font: ""` verwendet die Schrift des jeweiligen Profils; `/lobbyui font auto` setzt dies zurück.
 
 ```json
 "prefix": "{brand} &8{separator} &7",

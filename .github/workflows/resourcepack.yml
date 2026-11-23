@@ -1,0 +1,76 @@
+name: Build and publish KekGames resource pack
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'resourcepack/**'
+      - 'tools/BuildResourcePack.java'
+      - 'tools/ValidateResourcePackClient.java'
+      - 'tools/validate_resourcepack.py'
+      - '.github/workflows/resourcepack.yml'
+  pull_request:
+    paths:
+      - 'resourcepack/**'
+      - 'tools/BuildResourcePack.java'
+      - 'tools/ValidateResourcePackClient.java'
+      - 'tools/validate_resourcepack.py'
+      - '.github/workflows/resourcepack.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: resourcepack-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pack:
+    name: Build, validate and reproduce resource pack
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Generate original pixel fonts and pack
+        run: java tools/BuildResourcePack.java
+      - name: Validate ZIP, font dependencies, pixels, compatibility and hashes
+        run: python tools/validate_resourcepack.py target/resourcepack/KekGames-UI-*.zip
+      - name: Verify reproducible ZIP
+        run: |
+          java tools/BuildResourcePack.java resourcepack target/resourcepack-repeat
+          cmp target/resourcepack/KekGames-UI-*.zip target/resourcepack-repeat/KekGames-UI-*.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: KekGames-UI-resourcepack
+          path: target/resourcepack/*
+          if-no-files-found: error
+
+  publish:
+    name: Attach verified resource pack to v1.2.0
+    needs: pack
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[resourcepack]')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: KekGames-UI-resourcepack
+          path: release-pack
+      - name: Publish pack assets without replacing customer plugin
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          test "$(gh api repos/$GITHUB_REPOSITORY/git/ref/heads/main --jq .object.sha)" = "$GITHUB_SHA"
+          test "$(gh release view v1.2.0 --json isDraft --jq .isDraft)" = 'false'
+          cd release-pack
+          sha256sum --check resourcepack-SHA256SUMS.txt
+          gh release upload v1.2.0 *

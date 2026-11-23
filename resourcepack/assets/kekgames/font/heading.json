@@ -1,0 +1,8 @@
+{
+  "providers": [
+    {"type":"space","advances":{" ":5,"\u00a0":5}},
+    {"type":"reference","id":"kekgames:heading_glyphs"},
+    {"type":"reference","id":"kekgames:icons"},
+    {"type":"reference","id":"minecraft:default"}
+  ]
+}
