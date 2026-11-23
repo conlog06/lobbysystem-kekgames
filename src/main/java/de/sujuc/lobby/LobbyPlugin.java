@@ -22,7 +22,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scoreboard.*;
 
 public final class LobbyPlugin extends JavaPlugin implements CommandExecutor,TabCompleter,Listener {
-    Settings cfg; Store store; Menus menus; Effects effects; CommunityFeatures community; PublicKey publicKey;
+    Settings cfg; Store store; Menus menus; Effects effects; CommunityFeatures community; UiPresentation ui; PublicKey publicKey;
     boolean databaseReady, licensed;
     volatile boolean stopping;
     NamespacedKey actionKey,npcKey;
@@ -39,12 +39,19 @@ public final class LobbyPlugin extends JavaPlugin implements CommandExecutor,Tab
         final GameMode mode; final boolean flight,flying; final Scoreboard scoreboard;
         long playedAt=System.currentTimeMillis(); long gadgetAt;
         long lastPayNanos=System.nanoTime()-3_600_000_000_000L, lastLaunchNanos=lastPayNanos;
+        String presentationKey="";
         Session(Player p){player=p;contents=p.getInventory().getStorageContents().clone();armor=p.getInventory().getArmorContents().clone();offhand=p.getInventory().getItemInOffHand().clone();mode=p.getGameMode();flight=p.getAllowFlight();flying=p.isFlying();scoreboard=p.getScoreboard();}
     }
     public void onEnable() {
         try {
             cfg=Settings.load(getDataFolder().toPath().resolve("config.json"));
+            ui=new UiPresentation(this);
             if(!Material.matchMaterial(cfg.launchPads.material).isBlock())throw new IllegalArgumentException("launchPads.material muss ein Blockmaterial sein");
+            for(Settings.VisualProfile profile:List.of(cfg.design.classic,cfg.design.modern)){
+                List<String> materials=new ArrayList<>(profile.icons.values());materials.add(profile.background);materials.add(profile.accent);
+                for(String choice:materials)if(!VersionStyles.material(choice).isItem())throw new IllegalArgumentException("Designmaterial ist kein Item: "+choice);
+            }
+            for(String item:cfg.navigatorItems)if(!VersionStyles.material(item.split(";",5)[1]).isItem())throw new IllegalArgumentException("Navigator-Material ist kein Item");
             Path ranksPath=getDataFolder().toPath().resolve("ranks.json");
             if(!Files.exists(ranksPath))Files.writeString(ranksPath,Settings.JSON.toJson(List.of(new Rank("lobby.rank.owner","&cLeitung",100),new Rank("lobby.rank.premium","&6Premium",50),new Rank("","&7Spieler",0))));
             try(Reader reader=Files.newBufferedReader(ranksPath)){ranks=Settings.JSON.fromJson(reader,new TypeToken<List<Rank>>(){}.getType());}
@@ -76,16 +83,16 @@ public final class LobbyPlugin extends JavaPlugin implements CommandExecutor,Tab
     boolean checkLicense(){try{License.verify(cfg.license,publicKey,cfg.serverId,Instant.now());return licensed=true;}catch(Exception e){return licensed=false;}}
     boolean active(){return databaseReady&&licensed&&!stopping;}
     boolean lobby(Player p){return active()&&p.getWorld().getName().equals(cfg.world);}
-    static String color(String text){return ChatColor.translateAlternateColorCodes('&',text.replace('§','&'));}
-    void message(CommandSender p,String key){p.sendMessage(color(cfg.prefix+cfg.messages.getOrDefault(key,key)));}
-    void message(CommandSender p,String key,String...vars){String m=cfg.messages.getOrDefault(key,key);for(int i=0;i<vars.length;i+=2)m=m.replace("{"+vars[i]+"}",vars[i+1]);p.sendMessage(color(cfg.prefix+m));}
+    static String color(String text){return VersionStyles.color(text);}
+    void message(CommandSender p,String key){ui.chat(p,cfg.prefix+cfg.messages.getOrDefault(key,key));}
+    void message(CommandSender p,String key,String...vars){String m=cfg.messages.getOrDefault(key,key);for(int i=0;i<vars.length;i+=2)m=m.replace("{"+vars[i]+"}",vars[i+1]);ui.chat(p,cfg.prefix+m);}
     boolean permission(CommandSender s,String suffix){if(s.hasPermission(cfg.permission(suffix)))return true;message(s,"noPermission");return false;}
     void save(){try{cfg.save(getDataFolder().toPath().resolve("config.json"));}catch(IOException e){throw new IllegalStateException("Config konnte nicht gespeichert werden",e);}}
     <T> void future(CompletableFuture<T> f,Consumer<T> done,CommandSender receiver){f.whenComplete((value,error)->{
         if(stopping)return;
         Bukkit.getScheduler().runTask(this,()->{if(error!=null){
             Throwable cause=error;while(cause.getCause()!=null)cause=cause.getCause();
-            if(cause instanceof IllegalArgumentException){if(receiver!=null)receiver.sendMessage(color(cfg.prefix+"&c"+cause.getMessage()));}
+            if(cause instanceof IllegalArgumentException){if(receiver!=null)ui.chat(receiver,cfg.prefix+"&c"+cause.getMessage());}
             else{getLogger().log(java.util.logging.Level.SEVERE,"Datenbankoperation fehlgeschlagen",error);if(receiver!=null)message(receiver,"databaseError");}
         }else done.accept(value);});
     });}
@@ -118,34 +125,37 @@ public final class LobbyPlugin extends JavaPlugin implements CommandExecutor,Tab
         effects.balloon(s);visibility();display(s);
     }
     void hotbar(Player p){
-        p.getInventory().setItem(0,menus.item(Material.COMPASS,"&6Teleporter","&7Wähle deinen Spielmodus","open:navigator"));
-        p.getInventory().setItem(1,menus.item(Material.BLAZE_ROD,"&bGadget benutzen","&7Wähle ein Gadget unter Cosmetics","gadget"));
-        p.getInventory().setItem(2,menus.item(Material.TNT,"&eLottery","&7Benutze deine Lose","open:lottery"));
-        p.getInventory().setItem(4,menus.item(Material.BARRIER,"&bSpielersichtbarkeit","&7Alle, VIPs oder niemand","open:visibility"));
-        p.getInventory().setItem(6,menus.item(Material.NAME_TAG,"&bEinstellungen","&7Passe deine Lobby an","open:settings"));
-        p.getInventory().setItem(7,menus.item(Material.NETHER_STAR,"&dCosmetics","&7Partikel, Ballone, Gadgets und Heads","open:cosmetics"));
-        p.getInventory().setItem(8,menus.item(Material.PLAYER_HEAD,"&aDein Profil","&7Statistiken, Rewards und Ranglisten","open:profile"));
+        p.getInventory().setItem(0,menus.item(p,ui.icon(p,"navigator"),"&bNavigator","&7Dein nächstes Ziel wartet.\n&8Rechtsklick zum Öffnen","open:navigator"));
+        p.getInventory().setItem(1,menus.item(p,Material.BLAZE_ROD,"&bDein Gadget","&7Wähle dein Gadget in den Extras.\n&8Rechtsklick zum Benutzen","gadget"));
+        p.getInventory().setItem(2,menus.item(p,ui.icon(p,"lottery"),"&eLotterie","&7Nutze deine Lose und gewinne Coins.\n&8Rechtsklick zum Öffnen","open:lottery"));
+        p.getInventory().setItem(4,menus.item(p,ui.icon(p,"visibility"),"&bSpielersichtbarkeit","&7Alle, VIPs oder niemand.\n&8Rechtsklick zum Einstellen","open:visibility"));
+        p.getInventory().setItem(6,menus.item(p,ui.icon(p,"settings"),"&bEinstellungen","&7Deine Lobby. Deine Einstellungen.\n&8Rechtsklick zum Öffnen","open:settings"));
+        p.getInventory().setItem(7,menus.item(p,ui.icon(p,"cosmetics"),"&dExtras","&7Partikel, Ballone, Gadgets und Köpfe.\n&8Rechtsklick zum Öffnen","open:cosmetics"));
+        p.getInventory().setItem(8,menus.item(p,ui.icon(p,"profile"),"&bDein Profil","&7Statistiken, Belohnungen und Ranglisten.\n&8Rechtsklick zum Öffnen","open:profile"));
     }
     void visibility(){for(Session viewer:sessions.values())if(viewer.profile!=null)for(Session target:sessions.values()){
         if(viewer==target)continue;boolean show=viewer.profile.visibility()==0 || viewer.profile.visibility()==1&&target.player.hasPermission(cfg.permission("visibility"));
         if(show)viewer.player.showPlayer(this,target.player);else viewer.player.hidePlayer(this,target.player);
     }}
-    String rank(Player p){for(Rank r:ranks)if(r.permission().isEmpty()||p.hasPermission(r.permission()))return color(r.display());return color("&7Spieler");}
-    String placeholders(Session s,String str){ZonedDateTime now=ZonedDateTime.now(ZoneId.of(cfg.timeZone));return color(str.replace("{player}",s.player.getName()).replace("{coins}",String.format(Locale.GERMANY,"%,d",s.profile.coins())).replace("{tickets}",""+s.profile.tickets()).replace("{hours}",""+(s.profile.playtime()/3600)).replace("{rank}",rank(s.player)).replace("{date}",now.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))).replace("{time}",now.format(DateTimeFormatter.ofPattern("HH:mm:ss"))));}
+    String rank(Player p){for(Rank r:ranks)if(r.permission().isEmpty()||p.hasPermission(r.permission()))return ui.text(r.display());return ui.text("&7Spieler");}
+    String placeholders(Session s,String str){ZonedDateTime now=ZonedDateTime.now(ZoneId.of(cfg.timeZone));return ui.text(str.replace("{player}",s.player.getName()).replace("{coins}",String.format(Locale.GERMANY,"%,d",s.profile.coins())).replace("{tickets}",""+s.profile.tickets()).replace("{hours}",""+(s.profile.playtime()/3600)).replace("{playtime}",CommunityFeatures.duration(s.profile.playtime())).replace("{rank}",rank(s.player)).replace("{online}",""+sessions.size()).replace("{server_version}",VersionStyles.version(Bukkit.getBukkitVersion()).map(Object::toString).orElse(Bukkit.getBukkitVersion())).replace("{client_version}",ui.clientVersion(s.player)).replace("{ui_profile}",ui.profile(s.player)).replace("{date}",now.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"))).replace("{time}",now.format(DateTimeFormatter.ofPattern("HH:mm:ss"))));}
     void display(Session s){
         Player p=s.player;Scoreboard board=p.getScoreboard();
+        String key=ui.profile(p)+":"+ui.font(p);
+        if(!key.equals(s.presentationKey)){s.presentationKey=key;if(!builders.contains(p.getUniqueId()))hotbar(p);}
         if(board==s.scoreboard){board=Bukkit.getScoreboardManager().getNewScoreboard();p.setScoreboard(board);}
-        Objective obj=board.getObjective("lobby");if(obj==null){obj=board.registerNewObjective("lobby",Criteria.DUMMY,color(cfg.scoreboardTitle));obj.setDisplaySlot(DisplaySlot.SIDEBAR);}
+        Objective obj=board.getObjective("lobby");if(obj==null){obj=board.registerNewObjective("lobby",Criteria.DUMMY,ui.text(cfg.scoreboardTitle));obj.setDisplaySlot(DisplaySlot.SIDEBAR);ui.hideNumbers(obj);}
+        ui.objective(p,obj,placeholders(s,cfg.scoreboardTitle));
         for(int i=0;i<cfg.scoreboardLines.size();i++){
             String entry=ChatColor.values()[i].toString()+ChatColor.RESET;String name="line"+i;Team team=board.getTeam(name);if(team==null){team=board.registerNewTeam(name);team.addEntry(entry);}
-            team.setPrefix(placeholders(s,cfg.scoreboardLines.get(i)));obj.getScore(entry).setScore(cfg.scoreboardLines.size()-i);
+            ui.prefix(p,team,placeholders(s,cfg.scoreboardLines.get(i)));obj.getScore(entry).setScore(cfg.scoreboardLines.size()-i);
         }
         for(Session target:sessions.values()) {
             String name="p"+target.player.getUniqueId().toString().replace("-","").substring(0,14);Team team=board.getTeam(name);
-            if(team==null)team=board.registerNewTeam(name);team.setPrefix(rank(target.player)+color(" &8· &7"));team.addEntry(target.player.getName());
+            if(team==null)team=board.registerNewTeam(name);ui.prefix(p,team,rank(target.player)+" &8{separator} &7");team.addEntry(target.player.getName());
         }
-        p.setPlayerListName(rank(p)+color(" &8· &7")+p.getName());p.setPlayerListHeaderFooter(placeholders(s,cfg.tabHeader),placeholders(s,cfg.tabFooter));
-        p.spigot().sendMessage(net.md_5.bungee.api.ChatMessageType.ACTION_BAR,net.md_5.bungee.api.chat.TextComponent.fromLegacyText(placeholders(s,"&b{date} &8| &e{time}")));
+        ui.tab(p,rank(p)+" &8{separator} &f"+p.getName(),placeholders(s,cfg.tabHeader),placeholders(s,cfg.tabFooter));
+        ui.actionBar(p,placeholders(s,cfg.design.actionBar));
     }
     void teleport(Player p,String target){
         if(target.startsWith("connect:")){
@@ -164,7 +174,7 @@ public final class LobbyPlugin extends JavaPlugin implements CommandExecutor,Tab
         }
         LivingEntity npc=(LivingEntity)loc.getWorld().spawnEntity(loc,entry.getKey().equals("reward")?EntityType.WITCH:EntityType.VILLAGER);
         npc.setAI(false);npc.setInvulnerable(true);npc.setSilent(true);npc.setCollidable(false);npc.setGravity(false);npc.setPersistent(false);npc.setRemoveWhenFarAway(false);
-        npc.setCustomName(color(entry.getKey().equals("reward")?"&bTägliche Belohnung":"&bEinstellungen"));npc.setCustomNameVisible(true);npc.getPersistentDataContainer().set(npcKey,PersistentDataType.STRING,entry.getKey());npcs.put(entry.getKey(),npc);
+        npc.setCustomName(ui.text(entry.getKey().equals("reward")?cfg.design.rewardNpc:cfg.design.settingsNpc));npc.setCustomNameVisible(true);npc.getPersistentDataContainer().set(npcKey,PersistentDataType.STRING,entry.getKey());npcs.put(entry.getKey(),npc);
     }}
     void removeNpcs(){for(Entity e:npcs.values())e.remove();npcs.clear();for(Chunk c:npcChunks)c.removePluginChunkTicket(this);npcChunks.clear();}
     @EventHandler public void onJoin(PlayerJoinEvent e){if(lobby(e.getPlayer())){e.setJoinMessage(null);join(e.getPlayer());}}
@@ -179,10 +189,11 @@ public final class LobbyPlugin extends JavaPlugin implements CommandExecutor,Tab
         try {
             String name=cmd.getName();
             if(name.equals("lobbylicense")){licenseCommand(sender,args);return true;}
+            if(name.equals("lobbyui")){ui.command(sender,args);return true;}
             if(!active()){message(sender,"unlicensed");return true;}
             if(name.equals("lobbycoins")){coinsCommand(sender,args);return true;}
             if(!(sender instanceof Player p)){sender.sendMessage("Nur als Spieler möglich.");return true;}
-            if(!lobby(p)){p.sendMessage(color("&cDieser Befehl ist nur in der Lobby-Welt verfügbar: "+cfg.world));return true;}
+            if(!lobby(p)){ui.chat(p,cfg.prefix+"&cDieser Befehl ist nur in der Lobby-Welt verfügbar: "+cfg.world);return true;}
             switch(name){
                 case "build" -> {if(!permission(p,"build"))break;boolean on=builders.add(p.getUniqueId());if(!on)builders.remove(p.getUniqueId());p.closeInventory();p.getInventory().clear();p.getInventory().setArmorContents(new ItemStack[4]);p.setGameMode(on?GameMode.CREATIVE:GameMode.ADVENTURE);p.setAllowFlight(on);if(!on){hotbar(p);Session s=sessions.get(p.getUniqueId());if(s!=null&&s.profile!=null)apply(s);}message(p,"build","state",on?"aktiviert":"deaktiviert");}
                 case "setspawn" -> {if(permission(p,"setup")){cfg.spawn=new Settings.Spot(p.getLocation());save();message(p,"saved");}}
@@ -194,7 +205,7 @@ public final class LobbyPlugin extends JavaPlugin implements CommandExecutor,Tab
                 case "profile" -> menus.open(p,"profile");
                 default -> menus.open(p,name);
             }
-        }catch(Exception e){sender.sendMessage(color("&c"+(e.getMessage()==null?"Befehl fehlgeschlagen":e.getMessage())));}
+        }catch(Exception e){ui.chat(sender,cfg.prefix+"&c"+(e.getMessage()==null?"Befehl fehlgeschlagen":e.getMessage()));}
         return true;
     }
     void coinsCommand(CommandSender sender,String[] a){
@@ -207,7 +218,7 @@ public final class LobbyPlugin extends JavaPlugin implements CommandExecutor,Tab
         },sender);
     }
     void licenseCommand(CommandSender sender,String[] a)throws Exception {
-        if(a.length==0||a[0].equalsIgnoreCase("status")||a[0].equalsIgnoreCase("request")){sender.sendMessage("LobbySystem | Server-ID: "+cfg.serverId+" | Lizenz: "+(licensed?"gültig":"nicht aktiviert"));return;}
+        if(a.length==0||a[0].equalsIgnoreCase("status")||a[0].equalsIgnoreCase("request")){ui.chat(sender,cfg.prefix+"&7Server-ID: &f"+cfg.serverId+" &8| &7Lizenz: &f"+(licensed?"gültig":"nicht aktiviert"));return;}
         if(a[0].equalsIgnoreCase("activate")){
             if(!(sender instanceof ConsoleCommandSender)&&!permission(sender,"setup"))return;
             if(a.length!=2)throw new IllegalArgumentException("/lobbylicense activate <Lizenz>");
@@ -238,6 +249,7 @@ public final class LobbyPlugin extends JavaPlugin implements CommandExecutor,Tab
         if((name.equals("setreward")||name.equals("setsettings"))&&args.length==1&&sender.hasPermission(cfg.permission("setup")))choices.add("remove");
         if(name.equals("setwarp")&&args.length==2&&sender.hasPermission(cfg.permission("setup")))choices.add("remove");
         if(name.equals("lobbylicense")&&args.length==1)choices.addAll(List.of("status","request","activate","create"));
+        if(name.equals("lobbyui")&&sender.hasPermission(cfg.permission("setup"))){if(args.length==1)choices.addAll(List.of("status","profile","font"));if(args.length==2&&args[0].equals("profile"))choices.addAll(List.of("auto","classic","modern"));if(args.length==2&&args[0].equals("font"))choices.addAll(List.of("auto","minecraft:default","minecraft:uniform"));}
         String partial=args.length==0?"":args[args.length-1].toLowerCase(Locale.ROOT);return choices.stream().filter(v->v.toLowerCase(Locale.ROOT).startsWith(partial)).toList();
     }
 }

@@ -1,7 +1,53 @@
 {
   "license": "",
-  "serverId": "56f2814a-0fec-4637-aebb-fbb99c5336c5",
-  "prefix": "&8[&bLobby&8] &7",
+  "serverId": "db67401c-c70f-491f-800b-c09958365ad6",
+  "configVersion": 2,
+  "design": {
+    "profile": "auto",
+    "font": "",
+    "brand": "&b&lKek&f&lGames",
+    "separator": "»",
+    "primary": "38BDF8",
+    "secondary": "A78BFA",
+    "text": "CBD5E1",
+    "muted": "64748B",
+    "success": "86EFAC",
+    "error": "FCA5A5",
+    "highlight": "FCD34D",
+    "palette": true,
+    "hideScoreNumbers": true,
+    "actionBar": "&7{date} &8{separator} &b{time}",
+    "menuTitle": "{brand} &8{separator} {title}",
+    "rewardNpc": "&bTägliche Belohnung",
+    "settingsNpc": "&bEinstellungen",
+    "classic": {
+      "font": "minecraft:default",
+      "background": "GRAY_STAINED_GLASS_PANE",
+      "accent": "CYAN_STAINED_GLASS_PANE",
+      "icons": {
+        "visibility": "BARRIER",
+        "lottery": "TNT",
+        "settings": "NAME_TAG",
+        "navigator": "COMPASS",
+        "cosmetics": "NETHER_STAR",
+        "profile": "PLAYER_HEAD"
+      }
+    },
+    "modern": {
+      "font": "minecraft:uniform",
+      "background": "BLACK_STAINED_GLASS_PANE",
+      "accent": "PURPLE_STAINED_GLASS_PANE",
+      "icons": {
+        "visibility": "ENDER_EYE|BARRIER",
+        "lottery": "TRIAL_KEY|TNT",
+        "settings": "COMPARATOR|NAME_TAG",
+        "navigator": "RECOVERY_COMPASS|COMPASS",
+        "cosmetics": "AMETHYST_SHARD|NETHER_STAR",
+        "profile": "PLAYER_HEAD"
+      }
+    }
+  },
+  "prefix": "{brand} &8{separator} &7",
   "world": "world",
   "database": {
     "type": "sqlite",
@@ -23,11 +69,6 @@
     "suffix_setup": "setup"
   },
   "messages": {
-    "databaseError": "&cDatenbankfehler. Bitte versuche es später erneut.",
-    "unlicensed": "&cKeine gültige Lizenz. Nutze /lobbylicense request.",
-    "lottery": "&aGewinn: {coins} Coins!",
-    "saved": "&aGespeichert.",
-    "transferCooldown": "&eWarte noch einen Moment vor der nächsten Überweisung.",
     "transferSent": "&aDu hast {player} {coins} Coins gesendet.",
     "build": "&7Baumodus: &e{state}",
     "transferReceived": "&aDu hast von {player} {coins} Coins erhalten.",
@@ -46,26 +87,32 @@
     "topEntry": "&e#{position} &f{player} &8» &b{value}",
     "noPermission": "&cDafür hast du keine Berechtigung.",
     "reward": "&aBelohnung erhalten: {coins} Coins und {tickets} Lose.",
-    "balance": "&7Du hast &e{coins} Coins&7."
+    "balance": "&7Du hast &e{coins} Coins&7.",
+    "databaseError": "&cDatenbankfehler. Bitte versuche es später erneut.",
+    "unlicensed": "&cKeine gültige Lizenz. Nutze /lobbylicense request.",
+    "lottery": "&aGewinn: {coins} Coins!",
+    "saved": "&aGespeichert.",
+    "transferCooldown": "&eWarte noch einen Moment vor der nächsten Überweisung."
   },
-  "scoreboardTitle": "&b&lKekGames",
+  "scoreboardTitle": "{brand}",
   "scoreboardLines": [
-    "&8&m----------------",
-    "&e✦ Coins",
-    "&f{coins}",
+    "&8&m--------------------",
+    "&7SPIELER",
+    "&f{player}",
     " ",
-    "&b⌚ Spielzeit",
-    "&f{hours} Stunden",
+    "&7COINS &8{separator} &e{coins}",
+    "&7LOSE &8{separator} &e{tickets}",
     "  ",
-    "&d✦ Rang",
-    "{rank}",
+    "&7SPIELZEIT",
+    "&f{playtime}",
     "   ",
-    "&a✦ Lose",
-    "&f{tickets}",
-    "&8&m-----------------"
+    "&7RANG",
+    "{rank}",
+    "    ",
+    "&8{server_version} &8{separator} &b{online} online"
   ],
-  "tabHeader": "&b&lKekGames\n&7Willkommen, {player}!",
-  "tabFooter": "&7{date} &8| &e{time}",
+  "tabHeader": "\n{brand}\n&7Dein Platz auf &fKekGames\n",
+  "tabFooter": "\n&7{online} Spieler &8{separator} &7{server_version}\n&8{date} &8| &7{time}\n",
   "timeZone": "Europe/Berlin",
   "navigatorSize": 54,
   "navigatorItems": [
@@ -74,18 +121,18 @@
     "22;CHEST;spawn;&7» &eSpawn;&7Zurück zum Spawn"
   ],
   "menuTitles": {
-    "balloons": "&eCosmetics &8| &bBallone",
-    "heads": "&eCosmetics &8| &bHeads",
-    "visibility": "&bSpielersichtbarkeit",
-    "lottery": "&bLottery",
+    "lottery": "&eLotterie",
     "navigator": "&bNavigator",
     "leaderboard": "&6Ranglisten",
-    "particles": "&eCosmetics &8| &bPartikel",
-    "cosmetics": "&eCosmetics",
+    "particles": "&bPartikel",
+    "cosmetics": "&dExtras",
     "profile": "&bDein Profil",
     "settings": "&bEinstellungen",
-    "reward": "&bTägliche Belohnung",
-    "gadgets": "&eCosmetics &8| &bGadgets"
+    "reward": "&bBelohnungen",
+    "gadgets": "&bGadgets",
+    "balloons": "&bBallone",
+    "heads": "&bKöpfe",
+    "visibility": "&bSpieler"
   },
   "menuItemTexts": {
     "open:navigator": {

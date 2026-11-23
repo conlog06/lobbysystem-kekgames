@@ -27,7 +27,7 @@ async function until(test, name, timeout = 15000) {
   throw new Error('Timeout: ' + name + '\n' + serverText.slice(-5000))
 }
 async function json(url) {
-  const response = await fetch(url, { headers: { 'User-Agent': 'KekGames-LobbySystem-CI/1.1.0 (https://github.com/conlog06/lobbysystem-kekgames)' } })
+  const response = await fetch(url, { headers: { 'User-Agent': 'KekGames-LobbySystem-CI/1.2.0 (https://github.com/conlog06/lobbysystem-kekgames)' } })
   if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`)
   return response.json()
 }
@@ -285,8 +285,22 @@ async function tests() {
   await until(() => alice.messages.some(message => message.includes('Keine gültige Lizenz')), 'expired license rejects menus')
   pass('expired-license-blocks-real-player-command')
   await probe('activate'); await delay(500); await probe('ready'); await probe('session', alice)
+  await open(alice, '/profil'); await probe('ui-classic', alice)
+  await chat(alice, '/lobbyui profile modern')
+  await until(() => alice.inventory.slots[36]?.name === 'recovery_compass', 'modern profile updates connected client hotbar')
+  await open(alice, '/profil'); await probe('ui-modern', alice)
+  assert.equal(alice.currentWindow.slots[1].name, 'black_stained_glass_pane')
+  pass('modern-profile-icons-and-menu-delivered-to-client')
+  await chat(alice, '/lobbyui font minecraft:default'); await delay(350)
+  await open(alice, '/profil'); await probe('ui-font-default', alice)
+  await chat(alice, '/lobbyui font auto'); await delay(350)
+  await chat(alice, '/lobbyui profile auto')
+  await until(() => alice.inventory.slots[36]?.name === 'compass', 'automatic profile restored for actual client version')
+  await open(alice, '/profil'); await probe('ui-classic', alice)
+  pass('profile-and-font-reset-without-restart')
   for (const bot of [alice, bob]) if (bot.runtimeError) throw bot.runtimeError
   assert(!/\[LobbySystem\].*(?:Start fehlgeschlagen|Datenbankoperation fehlgeschlagen)/.test(serverText), 'No plugin or database runtime errors')
+  assert(!serverText.includes('Komponenten-Darstellung nicht'), 'Paper component presentation is available without fallback')
   pass('no-plugin-or-database-runtime-errors')
 }
 

@@ -4,12 +4,13 @@ Die Jobs in `.github/workflows/build.yml` prüfen die universelle Kunden-JAR auf
 
 ## Umfang
 
-- Zuerst laufen dieselben 50 Integrationsprüfungen wie beim SQLite-Build gegen MySQL: parallele Claims/Käufe und Überweisungen, Guthaben-/Überlaufschutz, Ranglisten, Einstellungen und Persistenz.
+- Zuerst laufen dieselben 77 Integrationsprüfungen wie beim SQLite-Build gegen MySQL: Versionen, Fontauswahl, RGB, Config-Migration, parallele Claims/Käufe und Überweisungen, Guthaben-/Überlaufschutz, Ranglisten, Einstellungen und Persistenz.
 - Zwei Mineflayer-Clients verbinden sich mit dem laufenden Server. Sie senden echte Spiel-, Menü-, NPC- und Command-Pakete. Ein ausschließlich in Tests gebautes Probe-Plugin kontrolliert zusätzlich den Zustand des echten Bukkit-Servers.
 - Die Clientfälle umfassen Hotbar, NPC-Menüs, Shift-/Zahlentastenschutz, Warps, Rewards, Lottery, Cosmetic-Käufe, Sichtbarkeit, Einstellungen, Baumodus, Sprungplatten, Profil und Ranglisten.
 - Sprungplatten werden durch echte Clientbewegung ausgelöst. Geprüft werden der serverseitige Auslöser und das beim Client empfangene Aufwärts-Velocity-Paket.
 - Der Server wird vollständig gestoppt und erneut gestartet; Kontostand, Cosmetics, NPC-Anzahl und bereits abgeholte Belohnungen werden danach erneut kontrolliert.
 - Eine abgelaufene Testlizenz muss die Lobby sperren und Sitzungen/NPCs bereinigen. Anschließend wird eine gültige Lizenz über den normalen Befehl aktiviert und der Zustand erneut kontrolliert. Dabei wartet der Test auf Papers verschachtelte Command-Verarbeitung.
+- `/lobbyui` schaltet auf dem laufenden Server zwischen automatischem, modernem und klassischem Profil sowie den eingebauten Schriften um. Geprüft werden tatsächliche Hotbar-/Menümaterialien, Item-/Inventartitel-Komponenten mit RGB und Font, Sidebar-/Tab-Fonts und ausgeblendete Scorezahlen. Die automatische Auswahl muss auch auf dem 26.3-Server den tatsächlichen 1.21.10-Client über ViaVersion erkennen.
 
 ## Grenzen und Reproduzierbarkeit
 

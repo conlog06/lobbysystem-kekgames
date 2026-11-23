@@ -92,7 +92,7 @@ jobs:
         with:
           name: LobbySystem-Spigot-1.21.10-R0.1-SNAPSHOT
           path: release-input
-      - name: Run 50 integration checks on real MySQL
+      - name: Run integration checks on real MySQL
         env:
           LOBBY_TEST_STORAGE: mysql
           MYSQL_HOST: 127.0.0.1
@@ -103,7 +103,7 @@ jobs:
       - name: Prepare isolated runtime installation
         run: |
           CP="target/test-classes:target/classes:$(cat target/runtime-classpath.txt)"
-          java -cp "$CP" de.sujuc.lobby.RuntimeSetup runtime-server release-input/LobbySystem-1.1.0.jar
+          java -cp "$CP" de.sujuc.lobby.RuntimeSetup runtime-server release-input/LobbySystem-*.jar
           npm install --prefix tests/runtime --ignore-scripts --no-audit --no-fund
       - name: Test real clients, server restart and license expiry
         env:
@@ -121,9 +121,9 @@ jobs:
           if-no-files-found: warn
 
   release:
-    name: Publish verified v1.1.0
+    name: Publish verified release
     needs: [build, runtime]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release:v1.1.0]')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release]')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -147,15 +147,17 @@ jobs:
               reports = list(Path('runtime-evidence').glob(f'runtime-evidence-{version}/**/runtime-results.json'))
               assert len(reports) == 1, reports
               report = json.loads(reports[0].read_text())
-              assert report['success'] and len(report['checks']) >= 25, report
+              assert report['success'] and len(report['checks']) >= 52, report
+              assert 'server-ui-modern-BotAlice' in report['checks'] and 'server-ui-font-default-BotAlice' in report['checks'], report
               shutil.copyfile(reports[0], f'release-assets/runtime-report-{version}.json')
           PY
           cd release-assets
-          sha256sum LobbySystem-1.1.0.jar > SHA256SUMS.txt
+          sha256sum LobbySystem-*.jar > SHA256SUMS.txt
       - name: Create release with tested customer plugin
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           test "$(gh api repos/$GITHUB_REPOSITORY/git/ref/heads/main --jq .object.sha)" = "$GITHUB_SHA"
-          gh release create v1.1.0 release-assets/* --draft --target "$GITHUB_SHA" --title "KekGames LobbySystem 1.1.0" --notes-file .github/RELEASE-v1.1.0.md
-          gh release edit v1.1.0 --draft=false --latest
+          VERSION=$(python3 -c "import xml.etree.ElementTree as E; print(E.parse('pom.xml').findtext('{http://maven.apache.org/POM/4.0.0}version'))")
+          gh release create "v$VERSION" release-assets/* --draft --target "$GITHUB_SHA" --title "KekGames LobbySystem $VERSION" --notes-file .github/RELEASE.md
+          gh release edit "v$VERSION" --draft=false --latest

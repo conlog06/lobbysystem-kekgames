@@ -37,7 +37,7 @@ final class Effects {
     void gadget(LobbyPlugin.Session s){
         Player player=s.player;String type=s.profile.gadget();if(type.isEmpty()){p.menus.open(player,"gadgets");return;}
         long now=System.currentTimeMillis();long wait=s.gadgetAt+p.cfg.gadgetCooldownSeconds*1000L-now;
-        if(wait>0){player.sendMessage(LobbyPlugin.color("&eWarte noch "+((wait+999)/1000)+" Sekunden."));return;}s.gadgetAt=now;
+        if(wait>0){p.ui.chat(player,p.cfg.prefix+"&eWarte noch "+((wait+999)/1000)+" Sekunden.");return;}s.gadgetAt=now;
         switch(type){
             case "DASH"->player.setVelocity(player.getLocation().getDirection().multiply(1.6).setY(.5));
             case "GRAPPLING"->{org.bukkit.block.Block target=player.getTargetBlockExact(20);if(target==null)return;Vector direction=target.getLocation().add(.5,1.5,.5).toVector().subtract(player.getLocation().toVector());if(direction.lengthSquared()>0)player.setVelocity(direction.normalize().multiply(1.6).setY(.75));}

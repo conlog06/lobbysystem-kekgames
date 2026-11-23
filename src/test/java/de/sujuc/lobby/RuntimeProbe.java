@@ -27,6 +27,25 @@ public final class RuntimeProbe extends JavaPlugin implements org.bukkit.event.L
         Bukkit.getScheduler().runTaskTimer(this,()->{try{if(active())getLogger().info("RUNTIME READY");}catch(Exception error){throw new RuntimeException(error);}},20,100);
     }
     private Object field(Object target,String name)throws Exception{Field field=target.getClass().getDeclaredField(name);field.setAccessible(true);return field.get(target);}
+    private String uiString(Object ui,String method,Player player)throws Exception{Method call=ui.getClass().getDeclaredMethod(method,Player.class);call.setAccessible(true);return (String)call.invoke(ui,player);}
+    private String jsonComponent(Object value)throws Exception{
+        Class<?> type=Class.forName("net.kyori.adventure.text.serializer.gson.GsonComponentSerializer");Object gson=type.getMethod("gson").invoke(null);
+        Method serialize;try{serialize=type.getMethod("serialize",Class.forName("net.kyori.adventure.text.Component"));}catch(NoSuchMethodException erased){serialize=type.getMethod("serialize",Object.class);}
+        return (String)serialize.invoke(gson,value);
+    }
+    private void presentation(Player player,String profile,String font)throws Exception{
+        Object ui=field(lobby,"ui");check(uiString(ui,"profile",player).equals(profile),"correct viewer profile");check(uiString(ui,"font",player).equals(font),"correct viewer font");
+        var item=player.getInventory().getItem(0);check(item.getType()==(profile.equals("modern")?Material.RECOVERY_COMPASS:Material.COMPASS),"profile hotbar icon");
+        String name=jsonComponent(org.bukkit.inventory.meta.ItemMeta.class.getMethod("displayName").invoke(item.getItemMeta()));
+        check(name.contains(font)&&name.contains("Navigator")&&name.contains("#38bdf8"),"RGB item component and font");
+        String title=jsonComponent(org.bukkit.inventory.InventoryView.class.getMethod("title").invoke(player.getOpenInventory()));
+        check(title.contains(font)&&title.contains("Kek")&&title.contains("Games")&&!title.contains("{brand}"),"branded inventory title and font");
+        check(player.getOpenInventory().getTopInventory().getItem(1).getType()==(profile.equals("modern")?Material.BLACK_STAINED_GLASS_PANE:Material.GRAY_STAINED_GLASS_PANE),"profile inventory background");
+        var objective=player.getScoreboard().getObjective("lobby");
+        check(org.bukkit.scoreboard.Objective.class.getMethod("numberFormat").invoke(objective)!=null,"sidebar score numbers suppressed");
+        check(jsonComponent(org.bukkit.scoreboard.Objective.class.getMethod("displayName").invoke(objective)).contains(font),"sidebar title font");
+        check(jsonComponent(Player.class.getMethod("playerListHeader").invoke(player)).contains(font),"tab header font");
+    }
     @org.bukkit.event.EventHandler(priority=org.bukkit.event.EventPriority.MONITOR)
     public void interaction(PlayerInteractEntityEvent event){getLogger().info("RUNTIME INTERACT "+event.getPlayer().getName()+" target="+event.getRightClicked().getType()+" distance="+event.getPlayer().getLocation().distance(event.getRightClicked().getLocation())+" cancelled="+event.isCancelled()+" menu="+event.getPlayer().getOpenInventory().getTopInventory().getType());}
     private boolean active()throws Exception{return (boolean)field(lobby,"databaseReady")&&(boolean)field(lobby,"licensed");}
@@ -40,6 +59,9 @@ public final class RuntimeProbe extends JavaPlugin implements org.bukkit.event.L
             switch(test){
                 case "ready"->{check(lobby.isEnabled()&&active(),"plugin active");check(npcs("reward")==1&&npcs("settings")==1,"exactly one of each configured NPC");}
                 case "session"->{check(player.getGameMode()==GameMode.ADVENTURE,"adventure mode");check(player.getInventory().getItem(0).getType()==Material.COMPASS,"navigator hotbar");check(player.getInventory().getItem(7).getType()==Material.NETHER_STAR,"cosmetics hotbar");check(player.getScoreboard().getObjective("lobby")!=null,"sidebar objective");}
+                case "ui-classic"->{presentation(player,"classic","minecraft:default");check(uiString(field(lobby,"ui"),"clientVersion",player).contains("1.21.10"),"actual client version detected, including ViaVersion");}
+                case "ui-modern"->presentation(player,"modern","minecraft:uniform");
+                case "ui-font-default"->presentation(player,"modern","minecraft:default");
                 case "reach"->{Entity witch=player.getWorld().getEntities().stream().filter(e->e instanceof Witch).findFirst().orElseThrow();getLogger().info("RUNTIME REACH player="+player.getLocation()+" npc="+witch.getLocation());check(player.getLocation().distance(witch.getLocation())<3,"NPC within server-side interaction reach");}
                 case "locked"->{
                     BlockBreakEvent block=new BlockBreakEvent(player.getWorld().getBlockAt(0,64,0),player);Bukkit.getPluginManager().callEvent(block);check(block.isCancelled(),"block protection");

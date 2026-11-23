@@ -1,6 +1,6 @@
 # lobbysystem-kekgames
 
-**KekGames LobbySystem 1.1.0** für Spigot/Paper, entwickelt für Minecraft **1.21.10 bis 26.3**. Java-Bytecode 21; für Minecraft 26.x Java 25 verwenden. Keine NMS-, ProtocolLib- oder CloudNet-Abhängigkeit. Folia wird nicht unterstützt.
+**KekGames LobbySystem 1.2.0** für Spigot/Paper, entwickelt für Minecraft **1.21.10 bis 26.3**. Java-Bytecode 21; für Minecraft 26.x Java 25 verwenden. Keine NMS-, ProtocolLib- oder CloudNet-Abhängigkeit. Folia wird nicht unterstützt.
 
 ## Funktionen
 
@@ -13,6 +13,7 @@
 - Doppelsprung, Sprungplatten, Sichtbarkeit (alle/VIPs/niemand) und optionaler Chatempfang.
 - Begrüßungstitel, persönliche Willkommensnachricht und rotierende Ankündigungen mit Platzhaltern.
 - Sidebar, Rangpräfixe, Tab-Header/-Footer und Datum/Uhrzeit in der Actionbar.
+- Versionsabhängige Designprofile, RGB-Palette, KekGames-Branding und einstellbare Minecraft-Schriften. Optional erkennt ViaVersion die tatsächliche Clientversion.
 - SQLite oder gemeinsame MySQL-Datenbank für mehrere Lobbys.
 - Offline-Lizenzen mit Ed25519-Signaturen, Owner-Ausstellung und automatische Ergänzung neuer Config-Schlüssel.
 
@@ -20,7 +21,7 @@ Die ursprünglichen Bilder dienen als funktionale Orientierung. Clan-System, ind
 
 ## Installation
 
-1. Unter [Actions](https://github.com/conlog06/lobbysystem-kekgames/actions) einen erfolgreichen Build öffnen und das Plugin-Artefakt herunterladen; alternativ selbst mit Maven bauen. Nur `LobbySystem-1.1.0.jar` in den `plugins/`-Ordner eines separaten Lobby-Servers legen.
+1. Unter [Releases](https://github.com/conlog06/lobbysystem-kekgames/releases/latest) die Kunden-JAR herunterladen; alternativ unter Actions einen erfolgreichen Build herunterladen oder selbst mit Maven bauen. Nur `LobbySystem-1.2.0.jar` in den `plugins/`-Ordner eines separaten Lobby-Servers legen.
 2. Server starten und stoppen. Unter `plugins/LobbySystem/` entstehen `config.json` und `ranks.json`. Ohne gültige Lizenz bleiben die Lobbyfunktionen inaktiv; Lizenzbefehle funktionieren bereits.
 3. `world`, Datenbank und Texte anpassen. Standard: Welt `world` und SQLite-Datei `players.db`.
 4. `/lobbylicense request` zeigt die Installations-ID. Dafür eine Owner-Lizenz ausstellen und als `license` in der Config eintragen; danach neu starten. Alternativ `/lobbylicense activate <Lizenz>` als Konsole oder mit Setup-Permission.
@@ -43,6 +44,9 @@ Der Server ist als Lobby vorgesehen. Beim Eintritt werden Inventar und Spielmodu
 | `/setreward [remove]` | Reward-Hexe setzen/entfernen | `lobby.setup` |
 | `/setsettings [remove]` | Einstellungs-NPC setzen/entfernen | `lobby.setup` |
 | `/tpcoord <x> <y> <z> [Welt]` | Zu Koordinaten teleportieren | `lobby.teleport` |
+| `/lobbyui [status]` | Server-/Clientversion, Designprofil und Schrift anzeigen | `lobby.setup` |
+| `/lobbyui profile auto\|classic\|modern` | Design umschalten und direkt speichern | `lobby.setup` |
+| `/lobbyui font auto\|minecraft:default\|minecraft:uniform` | Schrift umschalten; auch eigene `namespace:name` möglich | `lobby.setup` |
 | `/coins` oder `/balance` | Eigenen Kontostand anzeigen | alle |
 | `/pay <Spieler> <Coins>` | Coins übertragen, auch an bekannte Offline-Spieler | `lobby.pay` (standardmäßig alle) |
 | `/lobbytop [coins\|playtime]` oder `/top` | Ranglisten öffnen | alle |
@@ -57,7 +61,49 @@ Premium-Belohnung: `lobby.premium`. Im VIP-Sichtbarkeitsmodus sichtbare Spieler:
 
 Normale Permission-Namen stehen in `config.json` unter `permissions`: `prefix + "." + suffix_*`. Beispiel: Prefix `netzwerk`, `suffix_build` = `admin.build` ergibt `netzwerk.admin.build`. Die Owner-Ausstellung hat keinen Permission-, OP- oder Konsolen-Bypass.
 
-## Neue Einstellungen in 1.1.0
+## Darstellung für 1.21.10 bis 26.3
+
+`design.profile: "auto"` wählt für 1.21.x das klassische Profil und für 26.x das moderne Profil. Ist ViaVersion installiert, entscheidet die tatsächliche Clientversion; andernfalls die Serverversion. Die Auswahl verändert die Darstellung, die Spielfunktionen bleiben identisch. Beide Profile lassen sich auch mit `/lobbyui profile` fest einstellen.
+
+| Profil | Schrift | Menü | Hotbar-Beispiele |
+|---|---|---|---|
+| `classic` | `minecraft:default` | grauer Hintergrund, cyanfarbene Akzente | Kompass, Netherstern, TNT |
+| `modern` | `minecraft:uniform` | schwarzer Hintergrund, violette Akzente | Bergungskompass, Amethystscherbe, Prüfungsschlüssel |
+
+Beide Schriften sind im Minecraft-Client enthalten und benötigen kein zusätzliches Ressourcenpaket. Eine eigene Schrift wie `kekgames:ui` benötigt ein vom Spieler geladenes Ressourcenpaket mit diesem Font. Das Plugin liefert kein Ressourcenpaket aus. `design.font: ""` verwendet die Schrift des jeweiligen Profils; `/lobbyui font auto` setzt dies zurück.
+
+```json
+"prefix": "{brand} &8{separator} &7",
+"design": {
+  "profile": "auto",
+  "font": "",
+  "brand": "&b&lKek&f&lGames",
+  "separator": "»",
+  "primary": "38BDF8",
+  "secondary": "A78BFA",
+  "text": "CBD5E1",
+  "muted": "64748B",
+  "success": "86EFAC",
+  "error": "FCA5A5",
+  "highlight": "FCD34D",
+  "palette": true,
+  "hideScoreNumbers": true,
+  "menuTitle": "{brand} &8{separator} {title}",
+  "actionBar": "&7{date} &8{separator} &b{time}"
+}
+```
+
+Weitere Profileinstellungen stehen in [config.example.json](examples/config.example.json) unter `design.classic` und `design.modern`: `font`, `background`, `accent` und `icons`. Materialalternativen wie `TRIAL_KEY|TNT` wählen das erste auf dem Server verfügbare Material. Sie sind auch im Navigator erlaubt.
+
+Die Palette ordnet `&b`, `&d`, `&7`, `&8`, `&a`, `&c` und `&e`/`&6` den Designfarben zu. Mit `palette: false` bleiben deren originale Minecraft-Farben erhalten. Unabhängig davon funktionieren `&#38BDF8` und die Tokens `{primary}`, `{secondary}`, `{text}`, `{muted}`, `{success}`, `{error}`, `{highlight}`, `{brand}` und `{separator}`. `{title}` gilt nur für `design.menuTitle`.
+
+Auf Paper erhalten Items, Menüfenster, Sidebar, Rangpräfixe, Tablist und Titel Textkomponenten mit der gewählten Schrift; Sidebar-Zahlen werden ausgeblendet. Auf reinem Spigot nutzt das Plugin die verfügbaren öffentlichen APIs und fällt für fehlende Komponenten- oder Zahlenformat-APIs auf kompatible Texte zurück. `/lobbyui status` zeigt die verfügbaren Funktionen an. Die grafische Anzeige eigener Ressourcenpakete muss im Spiel geprüft werden.
+
+Beim ersten Update einer alten Config entsteht `config-v1-backup.json`. Anschließend ergänzt das Plugin die neuen Einstellungen. Unveränderte frühere Standardtexte werden aktualisiert; eigene Texte, Permissions, Lizenz, Installations-ID und Datenbank bleiben erhalten. Bestehende Coins und Cosmetics werden nicht zurückgesetzt. Der bisherige Owner-Schlüssel gilt weiter.
+
+Zusätzliche Platzhalter für Sidebar, Tablist, Begrüßung und Ankündigungen: `{playtime}`, `{online}`, `{server_version}`, `{client_version}`, `{ui_profile}`. Die bisherigen Platzhalter bleiben verfügbar.
+
+## Community-Einstellungen
 
 ```json
 "transfers": {"enabled": true, "maximumAmount": 1000000, "cooldownSeconds": 2},
@@ -114,7 +160,7 @@ Materialnamen in Großbuchstaben. Lokale Ziele mit `/setwarp skyblock` setzen, `
 "select:particle": {"name": "&b{value}", "lore": "&7Freischalten für &e{price} Coins\n{default}"}
 ```
 
-Farbcodes: `&` oder `§`. Normale Meldungen stehen unter `messages`; technische Validierungs- und Setup-Hinweise sind teilweise fest im Code. Sidebar/Tablist: `scoreboardTitle`, `scoreboardLines`, `tabHeader`, `tabFooter`. Maximal 15 Sidebar-Zeilen. Daily-Reset/Uhrzeit verwenden `timeZone`, standardmäßig `Europe/Berlin`. Normale und Premium-Rewards lassen sich getrennt einmal pro Kalendertag abholen.
+Farbcodes: `&`, `§` oder RGB mit `&#RRGGBB`. Normale Meldungen stehen unter `messages`; technische Validierungs- und Setup-Hinweise sind teilweise fest im Code. Sidebar/Tablist: `scoreboardTitle`, `scoreboardLines`, `tabHeader`, `tabFooter`. Maximal 15 Sidebar-Zeilen. Daily-Reset/Uhrzeit verwenden `timeZone`, standardmäßig `Europe/Berlin`. Normale und Premium-Rewards lassen sich getrennt einmal pro Kalendertag abholen.
 
 In `ranks.json` gewinnt der höchste passende `priority`-Wert; eine leere Permission dient als Fallback:
 
@@ -154,7 +200,7 @@ Maven baut gegen Spigot 1.21.10 mit Java-21-Bytecode und führt `CoreTest` autom
 mvn -Dspigot.version=26.3-R0.1-SNAPSHOT clean verify
 ```
 
-Ergebnis: `target/LobbySystem-1.1.0.jar`. GitHub Actions führt beide API-Builds aus und stellt Kunden-JARs als Artefakte bereit. Ein Audit prüft, dass der Prüfschlüssel vorhanden ist, kein privater Schlüssel und keine Server-API gebündelt werden und der Plugin-Bytecode Java 21 entspricht. Der Workflow benötigt ausschließlich Lesezugriff auf Repository-Inhalte.
+Ergebnis: `target/LobbySystem-1.2.0.jar`. GitHub Actions führt beide API-Builds aus und stellt Kunden-JARs als Artefakte bereit. Ein Audit prüft, dass der Prüfschlüssel vorhanden ist, kein privater Schlüssel und keine Server-API gebündelt werden und der Plugin-Bytecode Java 21 entspricht. Nur der Release-Job erhält Schreibzugriff zum Veröffentlichen eines Releases.
 
 Offline-Alternative mit JDK 25 und vorhandenen Paper-Bibliotheken:
 
@@ -162,9 +208,9 @@ Offline-Alternative mit JDK 25 und vorhandenen Paper-Bibliotheken:
 .\build-offline.ps1 -ServerLibraries 'C:\Pfad\zum\PaperServer\libraries'
 ```
 
-Lokal geprüft: Build gegen Paper **26.2** und **50 Prüfungen** mit echten SQLite-Verbindungen. GitHub Actions baut zusätzlich gegen beide Ziel-APIs und führt dieselben 50 Prüfungen mit einem echten **MySQL-8.4-Dienst** aus. Die Prüfungen umfassen Config-Migration, signierte Lizenzen, parallele Claims/Käufe und Überweisungen, Überlauf-/Guthabenschutz, Ranglisten und Persistenz.
+Lokal geprüft: Build gegen Paper **26.2** und **77 Prüfungen** mit echten SQLite-Verbindungen. GitHub Actions baut zusätzlich gegen beide Ziel-APIs und führt dieselben 77 Prüfungen mit einem echten **MySQL-8.4-Dienst** aus. Die Prüfungen umfassen Versions-/Fontauswahl, RGB-Komponenten, Config-Migration, signierte Lizenzen, parallele Claims/Käufe und Überweisungen, Überlauf-/Guthabenschutz, Ranglisten und Persistenz.
 
-Die Live-Jobs starten echte **Paper-Server 1.21.10 und 26.3** mit verbundenen Testclients. Sie prüfen NPC-Klicks, Menü- und Inventarschutz, Warps, Rewards, Käufe, Überweisungen, Sichtbarkeit, Sprungplatten, Spielereinstellungen, einen vollständigen Serverneustart sowie Lizenzablauf und Reaktivierung. Der 26.3-Server wird über ViaVersion/ViaBackwards mit einem 1.21.10-Testclient angesprochen; eine manuelle grafische Prüfung ist darin nicht enthalten. Details: [Runtime-Tests](tests/runtime/README.md).
+Die Live-Jobs starten echte **Paper-Server 1.21.10 und 26.3** mit verbundenen Testclients. Sie prüfen NPC-Klicks, Menü- und Inventarschutz, Warps, Rewards, Käufe, Überweisungen, Sichtbarkeit, Sprungplatten, Spielereinstellungen, einen vollständigen Serverneustart sowie Lizenzablauf und Reaktivierung. Hinzu kommen Profilwechsel, Hotbar-/Menüaktualisierung, RGB- und Fontkomponenten, Tab-/Sidebar-Schriften, ausgeblendete Scorezahlen sowie die Clientversionserkennung über ViaVersion. Der 26.3-Server wird über ViaVersion/ViaBackwards mit einem 1.21.10-Testclient angesprochen; eine manuelle grafische Prüfung ist darin nicht enthalten. Details: [Runtime-Tests](tests/runtime/README.md).
 
 Der [Freigabelauf für v1.1.0](https://github.com/conlog06/lobbysystem-kekgames/actions/runs/45213097513) hat auf beiden Serverversionen jeweils **46 Live-Prüfungen und 50 MySQL-Prüfungen** erfolgreich ausgeführt. Ein Release wird erst nach erfolgreichen Build- und Live-Jobs freigegeben. Die tatsächlich verwendeten Serverbuilds und Einzelergebnisse stehen in den [beigefügten JSON-Berichten](https://github.com/conlog06/lobbysystem-kekgames/releases/tag/v1.1.0). Im eigenen Netzwerk zusätzlich die konkrete Welt, andere Plugins und Proxy-Ziele prüfen; die CI verwendet eine isolierte Testinstallation.
 

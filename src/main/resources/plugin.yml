@@ -1,10 +1,13 @@
 name: LobbySystem
-version: 1.1.0
+version: 1.2.0
 main: de.sujuc.lobby.LobbyPlugin
 api-version: '1.21.10'
 author: SujucDerBreite
+softdepend: [ViaVersion]
 description: Lobby, Cosmetics, Coins und signierte Lizenzen
 commands:
+  lobbyui:
+    description: Darstellung, Schrift und Versionsprofil verwalten
   coins:
     description: Eigenen Kontostand anzeigen
     aliases: [balance]

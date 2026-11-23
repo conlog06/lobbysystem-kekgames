@@ -18,8 +18,8 @@ final class CommunityFeatures implements Listener {
         Settings.Welcome cfg=plugin.cfg.welcome;
         if(!cfg.enabled)return;
         Player player=session.player;
-        player.sendTitle(plugin.placeholders(session,cfg.title),plugin.placeholders(session,cfg.subtitle),10,60,20);
-        if(session.profile.messages()&&!cfg.message.isBlank())player.sendMessage(plugin.placeholders(session,plugin.cfg.prefix+cfg.message));
+        plugin.ui.welcome(player,plugin.placeholders(session,cfg.title),plugin.placeholders(session,cfg.subtitle));
+        if(session.profile.messages()&&!cfg.message.isBlank())plugin.ui.chat(player,plugin.placeholders(session,plugin.cfg.prefix+cfg.message));
     }
 
     void tick() {
@@ -31,7 +31,7 @@ final class CommunityFeatures implements Listener {
         // Bound the index for long-running servers.
         if(announcementIndex>=cfg.messages.size())announcementIndex=0;
         for(LobbyPlugin.Session session:plugin.sessions.values()) {
-            if(session.profile!=null&&session.profile.messages())session.player.sendMessage(plugin.placeholders(session,plugin.cfg.prefix+text));
+            if(session.profile!=null&&session.profile.messages())plugin.ui.chat(session.player,plugin.placeholders(session,plugin.cfg.prefix+text));
         }
     }
 
