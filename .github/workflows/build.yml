@@ -48,3 +48,109 @@ jobs:
           name: LobbySystem-Spigot-${{ matrix.api }}
           path: target/LobbySystem-*.jar
           if-no-files-found: error
+
+  runtime:
+    name: Live Paper ${{ matrix.minecraft }} and MySQL
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        minecraft: ['1.21.10', '26.3']
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root_ci
+          MYSQL_DATABASE: lobby_runtime
+          MYSQL_USER: lobby
+          MYSQL_PASSWORD: lobby_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot_ci"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Download the universal customer build
+        uses: actions/download-artifact@v4
+        with:
+          name: LobbySystem-Spigot-1.21.10-R0.1-SNAPSHOT
+          path: release-input
+      - name: Run 50 integration checks on real MySQL
+        env:
+          LOBBY_TEST_STORAGE: mysql
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_DATABASE: lobby_runtime
+          MYSQL_USER: lobby
+          MYSQL_PASSWORD: lobby_ci
+        run: mvn --batch-mode --no-transfer-progress test dependency:build-classpath -Dmdep.outputFile=target/runtime-classpath.txt
+      - name: Prepare isolated runtime installation
+        run: |
+          CP="target/test-classes:target/classes:$(cat target/runtime-classpath.txt)"
+          java -cp "$CP" de.sujuc.lobby.RuntimeSetup runtime-server release-input/LobbySystem-1.1.0.jar
+          npm install --prefix tests/runtime --ignore-scripts --no-audit --no-fund
+      - name: Test real clients, server restart and license expiry
+        env:
+          MC_VERSION: ${{ matrix.minecraft }}
+        run: node tests/runtime/run.cjs
+      - name: Upload runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-evidence-${{ matrix.minecraft }}
+          path: |
+            runtime-server/runtime-results.json
+            runtime-server/server-run-*.log
+            runtime-server/logs/latest.log
+          if-no-files-found: warn
+
+  release:
+    name: Publish verified v1.1.0
+    needs: [build, runtime]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release:v1.1.0]')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: LobbySystem-Spigot-1.21.10-R0.1-SNAPSHOT
+          path: release-assets
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: runtime-evidence-*
+          path: runtime-evidence
+      - name: Verify evidence and prepare release assets
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          import shutil
+          for version in ['1.21.10', '26.3']:
+              reports = list(Path('runtime-evidence').glob(f'runtime-evidence-{version}/**/runtime-results.json'))
+              assert len(reports) == 1, reports
+              report = json.loads(reports[0].read_text())
+              assert report['success'] and len(report['checks']) >= 25, report
+              shutil.copyfile(reports[0], f'release-assets/runtime-report-{version}.json')
+          PY
+          cd release-assets
+          sha256sum LobbySystem-1.1.0.jar > SHA256SUMS.txt
+      - name: Create release with tested customer plugin
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v1.1.0 release-assets/* --draft --target "$GITHUB_SHA" --title "KekGames LobbySystem 1.1.0" --notes-file .github/RELEASE-v1.1.0.md
+          gh release edit v1.1.0 --draft=false --latest

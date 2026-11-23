@@ -15,3 +15,8 @@
 .env
 .env.*
 /tools/SmokeSetup.java
+/runtime-server/
+/release-input/
+/release-assets/
+**/node_modules/
+tests/runtime/package-lock.json

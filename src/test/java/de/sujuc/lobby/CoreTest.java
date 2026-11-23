@@ -25,6 +25,8 @@ public final class CoreTest {
         String unlimited=License.issue(keys.getPrivate(),"Owner",server,0,now);
         check(License.verify(unlimited,keys.getPublic(),server,now.plusSeconds(86400L*10000)).expires()==0,"perpetual license");
         Path temp=Files.createTempDirectory("lobby-test-");Settings.Database cfg=new Settings.Database();UUID id=UUID.randomUUID();
+        boolean mysql="mysql".equals(System.getenv("LOBBY_TEST_STORAGE"));
+        if(mysql){cfg.type="mysql";cfg.host=System.getenv().getOrDefault("MYSQL_HOST","127.0.0.1");cfg.port=Integer.parseInt(System.getenv().getOrDefault("MYSQL_PORT","3306"));cfg.name=System.getenv().getOrDefault("MYSQL_DATABASE","lobby_runtime");cfg.user=System.getenv().getOrDefault("MYSQL_USER","lobby");cfg.password=System.getenv().getOrDefault("MYSQL_PASSWORD","lobby_ci");cfg.useSsl=true;}
         Settings defaults=Settings.load(temp.resolve("config.json"));
         check(defaults.permission("build").equals("lobby.build"),"permission prefix and suffix");
         defaults.permissions.put("prefix","custom");defaults.save(temp.resolve("config.json"));
@@ -90,6 +92,6 @@ public final class CoreTest {
         }
         try(Store reopened=new Store(cfg,temp)){await(reopened.init());check(await(reopened.refresh(id)).visibility()==2,"restart persistence");}
         try(var walk=Files.walk(temp)){for(Path item:walk.sorted(Comparator.reverseOrder()).toList())Files.delete(item);}
-        System.out.println("PASS: "+checks+" checks (license, config migration, concurrent SQLite transactions, transfers, leaderboards, coins, rewards, cosmetics, lottery, settings, restart)");
+        System.out.println("PASS: "+checks+" checks ("+(mysql?"MySQL":"SQLite")+", license, config migration, concurrent transactions, transfers, leaderboards, coins, rewards, cosmetics, lottery, settings, restart)");
     }
 }

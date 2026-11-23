@@ -1,0 +1,9 @@
+{
+  "name": "kekgames-runtime-tests",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "mineflayer": "4.34.0",
+    "mysql2": "^3.15.3"
+  }
+}
