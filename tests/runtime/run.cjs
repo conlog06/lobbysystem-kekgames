@@ -284,7 +284,7 @@ async function tests() {
   await chat(alice, '/profil')
   await until(() => alice.messages.some(message => message.includes('Keine gültige Lizenz')), 'expired license rejects menus')
   pass('expired-license-blocks-real-player-command')
-  await probe('activate'); await probe('ready'); await delay(500); await probe('session', alice)
+  await probe('activate'); await delay(500); await probe('ready'); await probe('session', alice)
   for (const bot of [alice, bob]) if (bot.runtimeError) throw bot.runtimeError
   assert(!/\[LobbySystem\].*(?:Start fehlgeschlagen|Datenbankoperation fehlgeschlagen)/.test(serverText), 'No plugin or database runtime errors')
   pass('no-plugin-or-database-runtime-errors')
